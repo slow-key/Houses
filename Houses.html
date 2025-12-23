@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Property Hub | Reorder</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg: #f8f9fa; --card: #ffffff; --text: #1c1e21; --header-bg: #ffffff;
+            --blue: #007bff; --green: #2ecc71; --orange: #f39c12; --purple: #9b59b6; --red: #e74c3c;
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        [data-theme="dark"] {
+            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --header-bg: #181818;
+            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: var(--bg); color: var(--text); 
+            margin: 0; padding-top: 80px; transition: 0.3s;
+        }
+
+        header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 70px; background: var(--header-bg);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 5%; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .header-title { font-size: 1.2rem; font-weight: 800; color: var(--blue); display: flex; align-items: center; gap: 8px; }
+
+        /* Form Styling */
+        #adminPanel {
+            display: none; background: var(--card);
+            margin: 20px auto; padding: 25px; width: 90%; max-width: 800px;
+            border-radius: 15px; box-shadow: var(--shadow);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        input { padding: 12px; border-radius: 8px; background: var(--bg); color: var(--text); border: 1px solid rgba(150,150,150,0.2); }
+
+        /* VERTICAL LIST STYLING */
+        .container { padding: 20px 5%; max-width: 800px; margin: 0 auto; }
+        
+        .house-list { display: flex; flex-direction: column; gap: 20px; }
+
+        .house-card { 
+            background: var(--card); border-radius: 16px; padding: 20px; 
+            box-shadow: var(--shadow); border: 1px solid rgba(150,150,150,0.1);
+            cursor: grab; /* Shows user they can move it */
+            display: flex; flex-direction: column;
+        }
+        
+        /* Style for the card while being dragged */
+        .sortable-ghost { opacity: 0.4; background: var(--blue); }
+        .sortable-chosen { border: 2px solid var(--blue); }
+
+        .card-main-row { display: flex; align-items: flex-start; gap: 15px; }
+        .drag-handle { color: #ccc; cursor: grab; padding-top: 5px; }
+        .house-icon { background: rgba(0,123,255,0.1); padding: 10px; border-radius: 10px; color: var(--blue); }
+
+        .house-info { flex-grow: 1; }
+        .house-name { font-size: 1.3rem; font-weight: 700; margin: 0; }
+        .house-addr { font-size: 0.85rem; opacity: 0.6; }
+
+        /* Buttons */
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .btn-u { 
+            display: flex; align-items: center; gap: 6px;
+            padding: 10px 16px; text-decoration: none; color: white; border-radius: 10px; 
+            font-weight: 600; font-size: 0.8rem; transition: 0.2s;
+        }
+        
+        .elec { background: var(--orange); }
+        .watr { background: var(--blue); }
+        .gass { background: var(--green); }
+        .morg { background: var(--purple); }
+
+        .card-actions { 
+            display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px;
+            padding-top: 10px; border-top: 1px solid rgba(150,150,150,0.05);
+        }
+        .icon-btn { cursor: pointer; background: none; border: none; color: var(--text); opacity: 0.4; transition: 0.3s; }
+        .icon-btn:hover { opacity: 1; color: var(--blue); }
+
+        .main-btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
+        .btn-primary { background: var(--blue); color: white; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title"><i data-lucide="layout-list"></i> Property Hub</div>
+    <div class="controls">
+        <button class="icon-btn" onclick="toggleTheme()"><i data-lucide="moon" id="themeIcon"></i></button>
+        <button class="main-btn btn-primary" onclick="toggleAdmin()">+ Add House</button>
+    </div>
+</header>
+
+<div id="adminPanel">
+    <h3 id="form-title">Property Details</h3>
+    <input type="hidden" id="edit-id">
+    <div class="form-grid">
+        <input type="text" id="in-name" placeholder="Name">
+        <input type="text" id="in-addr" placeholder="Address">
+        <input type="text" id="in-elec" placeholder="Electricity Link">
+        <input type="text" id="in-watr" placeholder="Water Link">
+        <input type="text" id="in-gass" placeholder="Gas Link">
+        <input type="text" id="in-morg" placeholder="Mortgage Link">
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button class="main-btn btn-primary" style="flex:2" onclick="handleSubmit()">Save</button>
+        <button class="main-btn" style="flex:1; background:#ccc;" onclick="toggleAdmin()">Cancel</button>
+    </div>
+</div>
+
+<div class="container">
+    <div id="houseList" class="house-list"></div>
+    
+    <div style="text-align: center; margin-top: 40px; opacity: 0.4;">
+        <p><i data-lucide="move"></i> Drag houses to reorder them</p>
+        <a href="#" onclick="exportData()" style="color:var(--text); font-size: 0.8rem;">Export data.js</a>
+    </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+    let properties = JSON.parse(localStorage.getItem('prop_hub_ordered')) || (typeof initialPropertyData !== 'undefined' ? initialPropertyData : []);
+
+    // INITIALIZE DRAG & DROP
+    const el = document.getElementById('houseList');
+    const sortable = Sortable.create(el, {
+        animation: 150,
+        handle: '.house-card', // Entire card is draggable
+        onEnd: function () {
+            // This runs after a user drops a card
+            reorderProperties();
+        }
+    });
+
+    function reorderProperties() {
+        const currentOrder = [];
+        document.querySelectorAll('.house-card').forEach(card => {
+            currentOrder.push(parseInt(card.getAttribute('data-id')));
+        });
+
+        // Map the existing properties array to the new DOM order
+        const newProperties = currentOrder.map(id => properties.find(p => p.id === id));
+        properties = newProperties;
+        localStorage.setItem('prop_hub_ordered', JSON.stringify(properties));
+    }
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+    }
+
+    function toggleTheme() {
+        const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        updateThemeIcon(next);
+    }
+
+    function updateThemeIcon(theme) {
+        document.getElementById('themeIcon').setAttribute('data-lucide', theme === 'light' ? 'moon' : 'sun');
+        lucide.createIcons();
+    }
+
+    function toggleAdmin() {
+        const panel = document.getElementById('adminPanel');
+        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+        if (panel.style.display === 'none') resetForm();
+    }
+
+    function render() {
+        localStorage.setItem('prop_hub_ordered', JSON.stringify(properties));
+        const list = document.getElementById('houseList');
+        list.innerHTML = '';
+
+        properties.forEach(h => {
+            const card = document.createElement('div');
+            card.className = 'house-card';
+            card.setAttribute('data-id', h.id);
+            
+            let buttonsHTML = '';
+            if (h.elec) buttonsHTML += `<a href="${h.elec}" target="_blank" class="btn-u elec"><i data-lucide="zap"></i> Elec</a>`;
+            if (h.water) buttonsHTML += `<a href="${h.water}" target="_blank" class="btn-u droplet"><i data-lucide="droplet"></i> Water</a>`;
+            if (h.gas) buttonsHTML += `<a href="${h.gas}" target="_blank" class="btn-u gass"><i data-lucide="flame"></i> Gas</a>`;
+            if (h.morg) buttonsHTML += `<a href="${h.morg}" target="_blank" class="btn-u morg"><i data-lucide="landmark"></i> Mortgage</a>`;
+
+            card.innerHTML = `
+                <div class="card-main-row">
+                    <div class="drag-handle"><i data-lucide="grip-vertical"></i></div>
+                    <div class="house-icon"><i data-lucide="home"></i></div>
+                    <div class="house-info">
+                        <div class="house-name">${h.name}</div>
+                        <div class="house-addr">${h.address || ''}</div>
+                        <div class="btn-group">${buttonsHTML}</div>
+                    </div>
+                    <div class="card-actions-mini">
+                         <button class="icon-btn" onclick="editHouse(event, ${h.id})"><i data-lucide="edit-3"></i></button>
+                         <button class="icon-btn" onclick="deleteHouse(event, ${h.id})" style="color:var(--red)"><i data-lucide="trash-2"></i></button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+        lucide.createIcons();
+    }
+
+    function handleSubmit() {
+        const id = document.getElementById('edit-id').value;
+        const name = document.getElementById('in-name').value;
+        if (!name) return alert("Please enter a name");
+
+        const house = {
+            id: id ? parseInt(id) : Date.now(),
+            name: name,
+            address: document.getElementById('in-addr').value,
+            elec: document.getElementById('in-elec').value.trim(),
+            water: document.getElementById('in-watr').value.trim(),
+            gas: document.getElementById('in-gass').value.trim(),
+            morg: document.getElementById('in-morg').value.trim()
+        };
+        
+        if (id) properties = properties.map(p => p.id === house.id ? house : p);
+        else properties.push(house);
+
+        toggleAdmin();
+        render();
+    }
+
+    // Stop drag event when clicking edit/delete
+    function editHouse(e, id) {
+        e.stopPropagation();
+        const h = properties.find(p => p.id === id);
+        document.getElementById('edit-id').value = h.id;
+        document.getElementById('in-name').value = h.name;
+        document.getElementById('in-addr').value = h.address;
+        document.getElementById('in-elec').value = h.elec;
+        document.getElementById('in-watr').value = h.water;
+        document.getElementById('in-gass').value = h.gas;
+        document.getElementById('in-morg').value = h.morg;
+        document.getElementById('form-title').innerText = "Edit Property";
+        document.getElementById('adminPanel').style.display = 'block';
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function deleteHouse(e, id) {
+        e.stopPropagation();
+        if(confirm("Delete this property?")) {
+            properties = properties.filter(p => p.id !== id);
+            render();
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('edit-id').value = '';
+        document.querySelectorAll('#adminPanel input').forEach(i => i.value = '');
+    }
+
+    function exportData() {
+        const dataStr = "const initialPropertyData = " + JSON.stringify(properties, null, 4) + ";";
+        const blob = new Blob([dataStr], { type: "text/javascript" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = "data.js";
+        link.click();
+    }
+
+    initTheme();
+    render();
+</script>
+</body>
+</html>
